@@ -16,20 +16,75 @@ const welcome = (conv:DialogflowConversation) => {
 const poseQuestion = (conv:DialogflowConversation) => {
     const convData: any = conv.data;
     const q = convData.questions.pop();
+    console.log('Question:', q);
     convData.answer = (q.correct_answer === "True");
     conv.ask(`<speak>True or False, ${decodeURI(q.question)}.</speak>`);
 }
 
+const getTopicID = (topic:string) => {
+    switch(topic) {
+        case 'general':
+            return 9;
+        case 'books':
+            return 12;
+        case 'film':
+            return 11;
+        case 'music':
+            return 12;
+        case 'theatre':
+            return 13;
+        case 'television':
+            return 14;
+        case 'video games':
+            return 15;
+        case 'science and nature':
+            return 17;
+        case 'computers':
+            return 18;
+        case 'mythology':
+            return 20;
+        case 'sport':
+            return 21;
+        case 'geography':
+            return 22;
+        case 'history':
+            return 23;
+        case 'politics':
+            return 24;
+        case 'art':
+            return 25;
+        case 'celebreties':
+            return 26;
+        case 'animals':
+            return 27;
+        case 'vehicles':
+            return 28;
+        case 'comics':
+            return 30;
+        case 'anime':
+            return 31;
+        case 'cartoons':
+            return 32;
+    }
+    return 0;
+}
+
 const askQuestion = (conv:DialogflowConversation, params) => {
-    const difficulty = params.questionDifficulty;
     const convData: any = conv.data;
     const quantity = params.questionQuantity ? params.questionQuantity : 1;
+    const topic = params.questionTopic ? params.questionTopic : null;
+    const skill = params.questionDifficulty ? params.questionDifficulty : null;
     if(convData.questions===undefined) {
         convData.questions = [];
     }
     console.log(params, convData);
     if(convData.questions.length===0) {
-        return fetch(`https://opentdb.com/api.php?amount=${quantity}&type=boolean`)
+        const skillPart = skill ? ['difficulty=', skill] : '';
+        const topicPart = topic ? ['category=', getTopicID(topic)].join('') : '';
+        const query = [ `amount=${quantity}`, 'type=boolean', topicPart, skillPart ].join('&');
+        const questionURL = `https://opentdb.com/api.php?${query}`;
+        console.log(query);
+        return fetch(questionURL)
             .then((response) => {
                 if (response.status < 200 || response.status >= 300) {
                     throw new Error(response.statusText);
