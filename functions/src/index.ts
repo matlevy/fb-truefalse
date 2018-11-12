@@ -11,11 +11,13 @@ const app = dialogflow();
 
 const welcome = (conv:DialogflowConversation) => {
     conv.add('Hey! Welcome to the True or False Quiz');
+    console.log('Quiz opened');
 }
 
 const askQestion = (conv:DialogflowConversation, params) => {
     const difficulty = params.questionDifficulty;
     const convData: any = conv.data;
+    console.log(params);
     if(convData && convData.lastCorrect!==undefined){
         conv.add(`<speak><p>${convData.lastCorrect?'Correct!':'Incorrect!'}</p></speak>`);
     };
@@ -36,6 +38,7 @@ const askQestion = (conv:DialogflowConversation, params) => {
 
 const checkAnswer = (conv:DialogflowConversation, params: any) => {
     const convData: any = conv.data;
+    console.log(params);
     convData.lastCorrect = (params.answerTrueFalse === convData.answer.toString());
     conv.followup('questionASK');
 }
