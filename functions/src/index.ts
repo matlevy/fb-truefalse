@@ -79,7 +79,7 @@ const askQuestion = (conv:DialogflowConversation, params) => {
     }
     console.log(params, convData);
     if(convData.questions.length===0) {
-        const skillPart = skill ? ['difficulty=', skill] : '';
+        const skillPart = skill ? ['difficulty=', skill].join('') : '';
         const topicPart = topic ? ['category=', getTopicID(topic)].join('') : '';
         const query = [ `amount=${quantity}`, 'type=boolean', topicPart, skillPart ].join('&');
         const questionURL = `https://opentdb.com/api.php?${query}`;
@@ -87,14 +87,23 @@ const askQuestion = (conv:DialogflowConversation, params) => {
         return fetch(questionURL)
             .then((response) => {
                 if (response.status < 200 || response.status >= 300) {
-                    throw new Error(response.statusText);
+                    conv.add('Oops... There was a problem fetching your questions. Try again.')
                 } else {
                     return response.json();
                 }
             })
             .then((response:OpenTriviaResponse) => {
                 convData.questions = response.results;
-                poseQuestion(conv);
+                if(convData.questions.length>0){
+                    conv.add(`Ok...`)
+                    poseQuestion(conv);
+                } else {
+                    if(topic) {
+                        conv.add(`Sorry I couldn't find any questions for that topic. Try asking for fewer questions or a different topic.`)
+                    } else {
+                        conv.add(`Sorry I couldn't find any questions. Try asking for fewer`)
+                    }
+                }
             })
     } else {
         if(convData && convData.lastCorrect!==undefined){
@@ -108,6 +117,8 @@ const checkAnswer = (conv:DialogflowConversation, params: any) => {
     const convData: any = conv.data;
     console.log(params);
     convData.lastCorrect = (params.answerTrueFalse === convData.answer.toString());
+    convData.correct += convData.lastCorrect ? 1 : 0;
+    convData.incorrect += !convData.lastCorrect ? 1 : 0;
     if(convData.questions.length>0) {
         conv.followup('questionASK');
     } else {
@@ -119,7 +130,8 @@ const quizComplete = (conv:DialogflowConversation, params: any) => {
     console.log('Quiz complete: ', params);
     const convData: any = conv.data;
     conv.add(`<speak><p>${convData.lastCorrect?'Correct!':'Incorrect!'}</p></speak>`);
-    conv.close('Thank you for playing!');
+    conv.add(`Ok... That finished your question set. Of the questions covered, you have answered 
+        ${convData.correct} correct and ${convData.incorrect} wrongly.`);
 }
 
 app.intent('welcome', welcome);
