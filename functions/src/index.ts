@@ -130,8 +130,10 @@ const quizComplete = (conv:DialogflowConversation, params: any) => {
     console.log('Quiz complete: ', params);
     const convData: any = conv.data;
     conv.add(`<speak><p>${convData.lastCorrect?'Correct!':'Incorrect!'}</p></speak>`);
-    conv.add(`Ok... That finished your question set. Of the questions covered, you have answered 
-        ${convData.correct} correct and ${convData.incorrect} wrongly.`);
+    if(convData.correct){
+        conv.add(`Ok... That finished your question set. Of the questions covered, you have answered 
+            ${convData.correct} correct and ${convData.incorrect} wrongly.`);
+    }
 }
 
 app.intent('welcome', welcome);
