@@ -9,7 +9,9 @@ const fetch = require('isomorphic-fetch');
 const app = dialogflow();
 
 const welcome = (conv:DialogflowConversation) => {
-    conv.add('Hey! Welcome to the True or False Quiz');
+    conv.add(`<speak><p>Hey! I'm TrueOrFalsy.</p><p>Test your whits with me! Ask me to teach you something or
+        test yourself against my knowledge base.</p><p>What would you like me to do: ask you a question, 
+        tell you a lie, or tell you a fact?</p></speak>`);
     console.log('Quiz opened');
 }
 
@@ -85,7 +87,7 @@ const factStatement = (fact:string) => {
 const lieStatement = (fact:string) => {
     const statements:string[] = [
         `<speak>Here's one I made up earlier: ${fact}</speak>`,
-        `<speak>I guy in the bar told me ${fact}</speak>`,
+        `<speak><p>I guy in the bar told me this the other day:</p><p>${fact}</p></speak>`,
         `<speak>Using my imagination, I thought of this: ${fact}</speak>`,
     ]
     const position = Math.round(Math.random()*(statements.length-1));
@@ -215,10 +217,15 @@ const quizComplete = (conv:DialogflowConversation, params: any) => {
     }
 }
 
+const exit = (conv:DialogflowConversation) => {
+    conv.close('OK... Thanks for chatting!');
+}
+
 app.intent('welcome', welcome);
 app.intent('question.ASK', askQuestion);
 app.intent('question.ANSWER', checkAnswer);
 app.intent('quiz.COMPLETE', quizComplete);
 app.intent('statement.TRUTHY', tellTruthy);
+app.intent('exit', exit);
 
 export const trueOrFalse = functions.https.onRequest(app);
