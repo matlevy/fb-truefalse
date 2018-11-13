@@ -131,8 +131,20 @@ const quizComplete = (conv:DialogflowConversation, params: any) => {
     const convData: any = conv.data;
     conv.add(`<speak><p>${convData.lastCorrect?'Correct!':'Incorrect!'}</p></speak>`);
     if(convData.correct){
-        conv.add(`Ok... That finished your question set. Of the questions covered, you have answered 
-            ${convData.correct} correct and ${convData.incorrect} wrongly.`);
+        const completeStatements = [`Ok... That finishes your questions.`]
+        if(convData.incorrect===0) {
+            completeStatements.push(`Well done! You answered them all correctly.`);
+        } else if(convData.correct===0) {
+            completeStatements.push(`Unfortunately you got them all wrong.`);
+        } else if(convData.correct>convData.incorrect) {
+            completeStatements.push(`Well done! You answered 
+                ${convData.correct} correct and ${convData.incorrect} wrong.`);
+        } else if(convData.incorrect>=convData.correct) {
+            completeStatements.push(`Of the questions covered, you answered 
+                ${convData.correct} correct and ${convData.incorrect} wrong.`);
+        }
+        const finishedMessage = completeStatements.map(s=>`<p>${s}</p>`).join('');
+        conv.add(`<speak>${finishedMessage}</speak>`)
     }
 }
 
