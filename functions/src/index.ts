@@ -9,9 +9,7 @@ const fetch = require('isomorphic-fetch');
 const app = dialogflow();
 
 const welcome = (conv:DialogflowConversation) => {
-    conv.add(`<speak><p>Hey! I'm TrueOrFalsy.</p><p>Test your whits with me! Ask me to teach you something or
-        test yourself against my knowledge base.</p><p>What would you like me to do: ask you a question, 
-        tell you a lie, or teach you a fact?</p></speak>`);
+    conv.add(`<speak><p>Hey! I'm TrueOrFalsy.</p><p>Test your whits with me! Ask me to teach you something or test yourself against my knowledge base.</p><p>What would you like me to do: ask you a question, tell you a lie, or teach you a fact?</p></speak>`);
     console.log('Quiz opened');
 }
 
@@ -87,7 +85,7 @@ const factStatement = (fact:string) => {
 const lieStatement = (fact:string) => {
     const statements:string[] = [
         `<speak>Here's one I made up earlier: ${fact}</speak>`,
-        `<speak><p>I guy in the bar told me this the other day:</p><p>${fact}</p></speak>`,
+        `<speak><p>A guy in the bar told me this the other day:</p><p>${fact}</p></speak>`,
         `<speak>Using my imagination, I thought of this: ${fact}</speak>`,
     ]
     const position = Math.round(Math.random()*(statements.length-1));
@@ -148,34 +146,38 @@ const askQuestion = (conv:DialogflowConversation, params) => {
     }
     console.log(params, convData);
     if(convData.questions.length===0) {
-        const skillPart = skill ? ['difficulty=', skill].join('') : '';
-        const topicPart = topic ? ['category=', getTopicID(topic)].join('') : '';
-        const query = [ `amount=${quantity}`, 'type=boolean', topicPart, skillPart ].join('&');
-        const questionURL = `https://opentdb.com/api.php?${query}`;
-        console.log(query);
-        return fetch(questionURL)
-            .then((response) => {
-                if (response.status < 200 || response.status >= 300) {
-                    conv.add('Oops... There was a problem fetching your questions. Try again.')
-                } else {
-                    return response.json();
-                }
-            })
-            .then((response:OpenTriviaResponse) => {
-                convData.questions = response.results;
-                convData.correct = null;
-                convData.incorrect = null;
-                if(convData.questions.length>0){
-                    conv.add(`Ok...`)
-                    poseQuestion(conv);
-                } else {
-                    if(topic) {
-                        conv.add(`Sorry I couldn't find any questions for that topic. Try asking for fewer questions or a different topic.`)
+        if(params.any && getTopicID(params.any)===0) {
+            conv.add(`Sorry... I think you asked me for a specific topic but I couldn't understand. Try again`);
+        } else {
+            const skillPart = skill ? ['difficulty=', skill].join('') : '';
+            const topicPart = topic ? ['category=', getTopicID(topic)].join('') : '';
+            const query = [ `amount=${quantity}`, 'type=boolean', topicPart, skillPart ].join('&');
+            const questionURL = `https://opentdb.com/api.php?${query}`;
+            console.log(query);
+            return fetch(questionURL)
+                .then((response) => {
+                    if (response.status < 200 || response.status >= 300) {
+                        conv.add('Oops... There was a problem fetching your questions. Try again.')
                     } else {
-                        conv.add(`Sorry I couldn't find any questions. Try asking for fewer`)
+                        return response.json();
                     }
-                }
-            })
+                })
+                .then((response:OpenTriviaResponse) => {
+                    convData.questions = response.results;
+                    convData.correct = null;
+                    convData.incorrect = null;
+                    if(convData.questions.length>0){
+                        conv.add(`Ok...`)
+                        poseQuestion(conv);
+                    } else {
+                        if(topic) {
+                            conv.add(`Sorry I couldn't find any questions for that topic. Try asking for fewer questions or a different topic.`)
+                        } else {
+                            conv.add(`Sorry I couldn't find any questions. Try asking for fewer`)
+                        }
+                    }
+                })
+        }
     } else {
         if(convData && convData.lastCorrect!==undefined){
             conv.add(`<speak><p>${convData.lastCorrect?'Correct!':'Incorrect!'}</p></speak>`);
@@ -188,9 +190,9 @@ const checkAnswer = (conv:DialogflowConversation, params: any) => {
     const convData: any = conv.data;
     console.log(params);
     convData.lastCorrect = (params.answerTrueFalse === convData.answer.toString());
-    convData.correct += convData.lastCorrect ? 1 : 0;
-    convData.incorrect += !convData.lastCorrect ? 1 : 0;
     if(convData.questions.length>0) {
+        convData.correct += convData.lastCorrect ? 1 : 0;
+        convData.incorrect += !convData.lastCorrect ? 1 : 0;
         conv.followup('questionASK');
     } else {
         conv.followup('questionsComplete');
@@ -203,9 +205,9 @@ const quizComplete = (conv:DialogflowConversation, params: any) => {
     conv.add(`<speak><p>${convData.lastCorrect?'Correct!':'Incorrect!'}</p></speak>`);
     if(convData.correct){
         const completeStatements = [`Ok... That finishes your questions.`]
-        if(convData.incorrect===0) {
+        if(convData.incorrect===0 && convData.correct>1) {
             completeStatements.push(`Well done! You answered them all correctly.`);
-        } else if(convData.correct===0) {
+        } else if(convData.correct===0 && convData.incorrect>1) {
             completeStatements.push(`Unfortunately you got them all wrong.`);
         } else if(convData.correct>convData.incorrect) {
             completeStatements.push(`Well done! You answered 
