@@ -11,7 +11,7 @@ const app = dialogflow();
 const welcome = (conv:DialogflowConversation) => {
     conv.add(`<speak><p>Hey! I'm TrueOrFalsy.</p><p>Test your whits with me! Ask me to teach you something or
         test yourself against my knowledge base.</p><p>What would you like me to do: ask you a question, 
-        tell you a lie, or tell you a fact?</p></speak>`);
+        tell you a lie, or teach you a fact?</p></speak>`);
     console.log('Quiz opened');
 }
 
@@ -163,6 +163,8 @@ const askQuestion = (conv:DialogflowConversation, params) => {
             })
             .then((response:OpenTriviaResponse) => {
                 convData.questions = response.results;
+                convData.correct = null;
+                convData.incorrect = null;
                 if(convData.questions.length>0){
                     conv.add(`Ok...`)
                     poseQuestion(conv);
