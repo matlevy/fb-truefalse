@@ -69,6 +69,73 @@ const getTopicID = (topic:string) => {
     return 0;
 }
 
+const factStatement = (fact:string) => {
+    const statements:string[] = [
+        `<speak>Ok... Here's something to know: ${fact}</speak>`,
+        `<speak>Here's one for you: ${fact}</speak>`,
+        `<speak>Maybe you didn't know this fact: ${fact}</speak>`,
+        `<speak>Boom... Here you go: ${fact}</speak>`,
+        `<speak>Check this out: ${fact}</speak>`,
+    ]
+    const position = Math.round(Math.random()*(statements.length-1));
+    console.log(statements, position, statements[position]);
+    return statements[position];
+}
+
+const lieStatement = (fact:string) => {
+    const statements:string[] = [
+        `<speak>Here's one I made up earlier: ${fact}</speak>`,
+        `<speak>I guy in the bar told me ${fact}</speak>`,
+        `<speak>Using my imagination, I thought of this: ${fact}</speak>`,
+    ]
+    const position = Math.round(Math.random()*(statements.length-1));
+    console.log(statements, position, statements[position]);
+    return statements[position];
+}
+
+const tellTruthy = (conv:DialogflowConversation, params) => {
+    const topic = params.questionTopic ? params.questionTopic : null;
+    const type = (params.statementType==='truthy'?'True':'False');
+    const topicPart = topic ? ['category=', getTopicID(topic)].join('') : '';
+    const quantity = topic ? 8 : 20;
+    const query = [ `amount=${quantity}`, 'type=boolean', topicPart ].join('&');
+    const truthURL = `https://opentdb.com/api.php?${query}`;
+    return fetch(truthURL)
+        .then((response) => {
+            if (response.status < 200 || response.status >= 300) {
+                conv.add('Oops... There was a problem.... Try again.')
+            } else {
+                return response.json();
+            }
+        })
+        .then((r:OpenTriviaResponse) => {
+            let theStatement = null;
+            if(r.results.length===0){
+                conv.add('<speak>Sorry... my mind went blank that time. Try something else.</speak>')
+            } else {
+                for(const q of r.results) {
+                    if(q.correct_answer===type) {
+                        theStatement = q;
+                    }
+                }
+                console.log(theStatement);
+                if(theStatement) {
+                    if(type==='True'){
+                        conv.add(factStatement(theStatement.question));
+                    } else {
+                        conv.add(lieStatement(theStatement.question));
+                    }
+                } else {
+                    if(type==='True'){
+                        conv.add(`<speak>Sorry... My mind's just foll of lies at the moment.</speak>`);
+                    } else {
+                        conv.add(`<speak>Sorry... My mother told me only to speak the truth.</speak>`);
+                    }
+                }
+            }
+        })
+}
+
 const askQuestion = (conv:DialogflowConversation, params) => {
     const convData: any = conv.data;
     const quantity = params.questionQuantity ? params.questionQuantity : 1;
@@ -152,5 +219,6 @@ app.intent('welcome', welcome);
 app.intent('question.ASK', askQuestion);
 app.intent('question.ANSWER', checkAnswer);
 app.intent('quiz.COMPLETE', quizComplete);
+app.intent('statement.TRUTHY', tellTruthy);
 
 export const trueOrFalse = functions.https.onRequest(app);
